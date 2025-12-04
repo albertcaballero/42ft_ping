@@ -48,5 +48,15 @@ char *clean_args(char **argv, int argc){
 
 int parse_ipv4(char *ip){
     char **spl = ft_split(ip, '.');
-    if ()
+    int i = 0;
+    for (i = 0; spl[i]; ++i){
+        if (i > 3)
+            return 0;
+        int a = ft_atoi(spl[i]);
+        if (a < 0 || a > 255)
+            return 0;
+    }
+    if (i != 4)
+        return 0;
+    return 1;
 }
