@@ -33,24 +33,19 @@ void set_flags(char* arg, int *flags){
 	}
 }
 
-char *clean_args(char **argv, int argc){
-    int count = 0;
-    int i = 0;
-    for (i = 0; i < argc; ++i){
-       if (argv[i][0] != '-')
-           break;
-    }
-
-    ft_dprintf(2, "ft_ping: %s: Name or service not known\n", argv[i]);
-	exit(2);
-    return ft_strdup(argv[i]);
-}
-
 int parse_ipv4(char *ip){
     char **spl = ft_split(ip, '.');
     int i = 0;
+    int count_p =0;
+    for (int j = 0; ip[j]; ++j){
+        if (ip[j] == '.')
+            count_p++;
+    }
+    if (count_p != 3)
+        return 0;
+
     for (i = 0; spl[i]; ++i){
-        if (i > 3)
+        if (i > 4)
             return 0;
         int a = ft_atoi(spl[i]);
         if (a < 0 || a > 255)
@@ -59,4 +54,21 @@ int parse_ipv4(char *ip){
     if (i != 4)
         return 0;
     return 1;
+}
+
+char *clean_args(char **argv, int argc){
+    int i = 1;
+    for (i = 1; i < argc; ++i){
+       if (argv[i][0] != '-')
+           break;
+    }
+    if (!argv[i]){
+        ft_dprintf(2, "ft_ping: usage error: Destination address required\n");
+    	exit(2);
+    }
+    if (!parse_ipv4(argv[i])){
+        ft_dprintf(2, "ft_ping: %s: Name or service not known\n", argv[i]);
+    	exit(2);
+    }
+    return ft_strdup(argv[i]);
 }

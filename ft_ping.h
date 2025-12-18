@@ -16,4 +16,10 @@ typedef struct s_ping
     char* padding;
 } t_ping;
 
+//parsing
+void set_flags(char* arg, int *flags);
+char *clean_args(char **argv, int argc);
+
+
+
 #endif

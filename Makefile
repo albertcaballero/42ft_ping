@@ -7,7 +7,7 @@ CC = cc
 
 TMP := .obj/
 
-FILES = main.c
+FILES = main.c parsing.c
 SRC := $(addprefix src/,$(FILES))
 OBJS := $(addprefix $(TMP),$(FILES:.c=.o))
 
