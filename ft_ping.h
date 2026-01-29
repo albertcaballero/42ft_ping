@@ -8,6 +8,7 @@
 #include <netdb.h>
 #include <signal.h>
 #include <netinet/ip_icmp.h>
+#include <time.h>
 
 #define F_VERBOSE   (1 << 0)
 #define F_HELP      (1 << 1)
