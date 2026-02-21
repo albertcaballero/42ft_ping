@@ -19,7 +19,7 @@
 //-? / --help -> display help
 //
 #define RECV_TIMEOUT 1 //in seconds
-#define PACKET_SIZE 64
+#define PACKET_SIZE 56
 
 typedef struct s_ping
 {
