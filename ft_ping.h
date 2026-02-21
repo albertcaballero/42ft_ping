@@ -9,6 +9,9 @@
 #include <signal.h>
 #include <netinet/ip_icmp.h>
 #include <time.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <errno.h>
 
 #define F_VERBOSE   (1 << 0)
 #define F_HELP      (1 << 1)

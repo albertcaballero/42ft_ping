@@ -22,16 +22,20 @@ int create_socket(){
     struct timeval timeout;
 
     sock_r = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-    if (sock_r < 0)
+    if (sock_r < 0){
+        perror("ERR creating socket");
         return -1; //TODO error
+    }
 
     if (setsockopt(sock_r, IPPROTO_IP, IP_TTL, &tt_val, sizeof(tt_val)) != 0){
+        perror("ERR creating socket");
         return -1; //TODO error
     }
 
     timeout.tv_sec = RECV_TIMEOUT;
     timeout.tv_usec = 0;
     if (setsockopt(sock_r, SOL_SOCKET, SO_RCVTIMEO, (const void*)&timeout, sizeof(timeout)) != 0){
+        perror("ERR creating socket");
         return -1; //TODO error
     }
     return sock_r;
@@ -55,7 +59,12 @@ void ping_loop(int sockfd, t_ping *ping){
 
     //sendto
     t_packet packet;
-    struct sockaddr ping_to;
+    struct sockaddr_in ping_to;
+    ping_to.sin_family = AF_INET;
+    ping_to.sin_port = htons(0);
+    inet_aton(ping->ip, &ping_to.sin_addr);
+    memset(ping_to.sin_zero, 0, sizeof(ping_to.sin_zero));
+    // ping_to.sin_addr.s_addr = inet_addr(ping->ip);
 
     //recvfrom
     char r_buffer[128];
@@ -76,13 +85,13 @@ void ping_loop(int sockfd, t_ping *ping){
         ft_bzero(&packet.msg, PACKET_SIZE);
 
         clock_gettime(CLOCK_REALTIME, &send_time);
-        if (sendto(sockfd, &packet, sizeof(packet), 0, &ping_to, (socklen_t)sizeof(ping_to)) < 0){
-            //error
+        if (sendto(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *)&ping_to, (socklen_t)sizeof(ping_to)) < 0){
+            perror("ERROR SENDING");
         }
         sent++;
 
         if (recvfrom(sockfd, r_buffer, sizeof(r_buffer), 0, (struct sockaddr *)&ping_from, &addrlen) < 0){
-            //error
+            perror("ERROR RECEIVING\n");
         }else{
             //check if ping_from is the one we want
             received++;
@@ -109,6 +118,10 @@ int main(int argc, char** argv){
 
     ft_printf("PING %s (%s) %i(84) bytes of data.\n", ip, ip, PACKET_SIZE);
     sock_r = create_socket();
+    if (sock_r < 0){
+        ft_dprintf(2, "Error creating socket\n");
+        return 0;
+    }
     signal(SIGINT, sigint_handler);
 
     ping_loop(sock_r, &ping);
