@@ -7,7 +7,7 @@
 
 /* DOCUMENTATION
  https://www.geeksforgeeks.org/computer-networks/ping-in-c/
-
+https://beej.us/guide/bgnet/html/split/index.html
  */
 
 int pinging = 1;
@@ -72,8 +72,11 @@ void ping_loop(int sockfd, t_ping *ping){
     struct sockaddr_in ping_to;
     ping_to.sin_family = AF_INET;
     ping_to.sin_port = 0;
-    inet_aton(ping->ip, &ping_to.sin_addr);
-    memset(ping_to.sin_zero, 0, sizeof(ping_to.sin_zero));
+    if (!inet_aton(ping->ip, &ping_to.sin_addr)){
+        ft_dprintf(2, "Wrong address\n");
+        return;
+    }
+    ft_memset(ping_to.sin_zero, 0, sizeof(ping_to.sin_zero));
 
     //recvfrom
     char r_buffer[128];
@@ -131,14 +134,17 @@ int main(int argc, char** argv){
     t_ping ping; //TODO t_ping al carrer substitute with t_program
     int sock_r;
 
-    for (int i = 0; i < argc; ++i){
+    int idx = 0;
+    for (int i = 1; i < argc; ++i){
 		set_flags(argv[i], &flags);
+		idx = argv[i][0] != '-';
 	}
-    ip = clean_args(argv, argc);
-    //TODO dns & reverse dns
+    ip = gethost(argv[idx]);
     ping.ip = ip;
 
-    ft_printf("PING %s (%s) %i(84) bytes of data.\n", ip, ip, PACKET_SIZE);
+    ft_printf("%s - %s\n",argv[idx],  ip);
+    return 0;
+
     sock_r = create_socket();
     if (sock_r < 0){
         ft_dprintf(2, "Error creating socket\n");
@@ -146,6 +152,7 @@ int main(int argc, char** argv){
     }
     signal(SIGINT, sigint_handler);
 
+    ft_printf("PING %s (%s) %i(84) bytes of data.\n", ip, ip, PACKET_SIZE);
     ping_loop(sock_r, &ping);
     // cleanup(); //TODO
 }

@@ -45,6 +45,8 @@ typedef struct s_program{
 void set_flags(char* arg, int *flags);
 char *clean_args(char **argv, int argc);
 
+//dns
+char* gethost(char *argv);
 
 
 #endif
