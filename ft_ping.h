@@ -21,14 +21,6 @@
 #define RECV_TIMEOUT 1 //in seconds
 #define PACKET_SIZE 56
 
-typedef struct s_ping
-{
-    char *ip;
-    char *header;
-    struct timeval time;
-    char* padding;
-} t_ping;
-
 typedef struct s_packet{
     struct icmphdr header;
     char msg[PACKET_SIZE];
@@ -37,8 +29,7 @@ typedef struct s_packet{
 typedef struct s_program{
     char *ip;
     char *hostname;
-    char *revdns;
-    struct sockaddr addr;
+    int     sck;
 } t_program;
 
 //parsing
