@@ -55,8 +55,8 @@ uint16_t calculate_checksum(void *data, int len) {
 }
 
 void ping_loop(int sockfd, t_program *ping){
-    int sent = 0, received = 0, seq = 0;
-
+    int sent = 0, received = 0, seq = 0, flag = 0;
+    struct s_timings tmg;
     //sendto
     t_packet packet;
 
@@ -74,9 +74,10 @@ void ping_loop(int sockfd, t_program *ping){
     struct sockaddr_in ping_from;
     socklen_t addrlen = sizeof(ping_from);
 
-    struct timespec send_time, rec_time;
+    struct timespec send_time, rec_time, start_time;
     double pckt_msec =0;
     unsigned long total_msec = 0;
+    clock_gettime(CLOCK_REALTIME, &start_time);
 
     while (pinging){
         seq++;
@@ -90,40 +91,56 @@ void ping_loop(int sockfd, t_program *ping){
         packet.header.checksum = 0;
         packet.header.checksum = calculate_checksum(&packet, sizeof(packet));
 
+        flag = 1;
         clock_gettime(CLOCK_REALTIME, &send_time);
         if (sendto(sockfd, &packet, sizeof(packet), 0, (struct sockaddr *)&ping_to, (socklen_t)sizeof(ping_to)) < 0){
             perror("ERROR SENDING");
+            flag = 0;
         }
         sent++;
 
         int rec_bytes = recvfrom(sockfd, r_buffer, sizeof(r_buffer), 0, (struct sockaddr *)&ping_from, &addrlen);
         if (rec_bytes < 0){
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
                 printf("Request timeout for icmp_seq %d\n", seq);
-            }else
+            else
                 perror("ERROR RECEIVING");
         }else{
+            if (!flag)
+                continue;
+
             char cha[INET_ADDRSTRLEN];
             inet_ntop(AF_INET, &(ping_from.sin_addr), cha, INET_ADDRSTRLEN);
+
+            struct iphdr *ip_hdr = (struct iphdr *)r_buffer;
+            // struct icmphdr *icmp_reply = (struct icmphdr *)(r_buffer + ip_hdr->ihl * 4);
 
             clock_gettime(CLOCK_REALTIME, &rec_time);
             double timeElapsed = ((double)(rec_time.tv_nsec - send_time.tv_nsec)) / 1000000.0;
             pckt_msec = (rec_time.tv_sec - send_time.tv_sec) * 1000.0 + timeElapsed;
 
-            printf("%i bytes from %s (%s): icmp_seq=%i ttl=%i time=%.2f ms\n",
-                    64, ping->hostname, cha, seq, 64, pckt_msec);
+            printf("%d bytes from %s (%s): icmp_seq=%i ttl=%i time=%.2f ms\n",
+                ntohs(ip_hdr->tot_len) - (ip_hdr->ihl * 4),
+                ping->hostname, cha, seq, ip_hdr->ttl, pckt_msec);
 
             received++;
             total_msec+=pckt_msec;
+            update_timings(&tmg, pckt_msec);
         }
         sleep(1);
     }
+
+    clock_gettime(CLOCK_REALTIME, &rec_time);
+    double timeElapsed = ((double)(rec_time.tv_nsec - start_time.tv_nsec)) / 1000000.0;
+    total_msec = (rec_time.tv_sec - start_time.tv_sec) * 1000.0 + timeElapsed;
+
     unsigned int loss = 0;
     if (seq)
         loss = (seq - received)/seq * 100;
+    calc_endtimes(&tmg);
     ft_printf("\n--- %s ping statistics ---\n", ping->hostname);
     ft_printf("%u packets transmitted, %u received, %u%% packet loss, time %ums\n", sent, received, loss, total_msec);
-    printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n", 123.0, 123.0, 123.0, 123.0);
+    printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n", tmg.min, tmg.avg, tmg.max, tmg.mdev);
 }
 
 int main(int argc, char** argv){
@@ -136,6 +153,7 @@ int main(int argc, char** argv){
 		set_flags(argv[i], &flags);
 		idx = argv[i][0] != '-';
 	}
+    ping.flags = flags;
     ping.ip = gethost(argv[idx]);
     if (!ping.ip){
         return 0;
@@ -148,19 +166,27 @@ int main(int argc, char** argv){
     }
     signal(SIGINT, sigint_handler);
 
-    //TODO implement help and verbose
+    if (ping.flags & F_HELP){
+        print_help();
+        return 0;
+    }
+
+    if (ping.flags & F_VERBOSE){
+        //TODO
+        ft_printf("FT_PING %s (%s) %i(84) bytes of data.\n", ping.hostname, ping.ip, PACKET_SIZE);
+    }
+
     ft_printf("FT_PING %s (%s) %i(84) bytes of data.\n", ping.hostname, ping.ip, PACKET_SIZE);
     ping_loop(sock_r, &ping);
 
-    // cleanup(); //TODO
     close(sock_r);
     free(ping.ip);
     free(ping.hostname);
 }
 
 //TODO list
-// implement --help and -verbose
-// cleanup (free and other)
-// fix struct s_ping
+// implement -verbose
+// implement other flags
 // fix ping result and summary
-//
+// timings mdev
+// fit to inetutils ping (not yours)

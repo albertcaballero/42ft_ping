@@ -30,14 +30,25 @@ typedef struct s_program{
     char *ip;
     char *hostname;
     int     sck;
+    int     flags;
 } t_program;
+
+struct s_timings{
+    double min;
+    double avg;
+    double max;
+    double mdev;
+    double total;
+    int count;
+};
 
 //parsing
 void set_flags(char* arg, int *flags);
-char *clean_args(char **argv, int argc);
-
-//dns
 char* gethost(char *argv);
 
+//utils
+void update_timings(struct s_timings *times, double pckt_msec);
+void calc_endtimes(struct s_timings *times);
+void print_help();
 
 #endif

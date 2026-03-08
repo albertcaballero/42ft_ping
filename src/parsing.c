@@ -33,42 +33,33 @@ void set_flags(char* arg, int *flags){
 	}
 }
 
-int parse_ipv4(char *ip){
-    char **spl = ft_split(ip, '.');
-    int i = 0;
-    int count_p =0;
-    for (int j = 0; ip[j]; ++j){
-        if (ip[j] == '.')
-            count_p++;
-    }
-    if (count_p != 3)
-        return 0;
+char* gethost(char *argv){
+    struct addrinfo hints;
+    struct addrinfo *results;
+    char ip[INET6_ADDRSTRLEN];
 
-    for (i = 0; spl[i]; ++i){
-        if (i > 4)
-            return 0;
-        int a = ft_atoi(spl[i]);
-        if (a < 0 || a > 255)
-            return 0;
+    ft_bzero(&hints, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    int rd = getaddrinfo(argv, NULL, &hints, &results);
+    if (rd != 0){
+        ft_dprintf(2, "ft_ping: %s: %s\n", argv, gai_strerror(rd));
+        return NULL;
     }
-    if (i != 4)
-        return 0;
-    return 1;
-}
 
-char *clean_args(char **argv, int argc){
-    int i = 1;
-    for (i = 1; i < argc; ++i){
-       if (argv[i][0] != '-')
-           break;
+    for (struct addrinfo *p = results; p != NULL; p = p->ai_next) {
+        void *addr;
+
+        if (p->ai_family == AF_INET) {
+            addr = &((struct sockaddr_in *)p->ai_addr)->sin_addr;
+        } else {
+            addr = &((struct sockaddr_in6 *)p->ai_addr)->sin6_addr;
+        }
+
+        inet_ntop(p->ai_family, addr, ip, sizeof(ip));
+        // printf("IP: %s\n", ip);
+        break;
     }
-    if (!argv[i]){
-        ft_dprintf(2, "ft_ping: usage error: Destination address required\n");
-    	exit(2);
-    }
-    if (!parse_ipv4(argv[i])){
-        ft_dprintf(2, "ft_ping: %s: Name or service not known\n", argv[i]);
-    	exit(2);
-    }
-    return ft_strdup(argv[i]);
+    freeaddrinfo(results);
+    return ft_strdup(ip);
 }
