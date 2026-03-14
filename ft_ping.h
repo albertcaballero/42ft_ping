@@ -12,6 +12,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <getopt.h>
+#include <limits.h>
 
 #define F_VERBOSE   (1 << 0)
 #define F_HELP      (1 << 1)
@@ -26,12 +28,14 @@ typedef struct s_packet{
     char msg[PACKET_SIZE];
 } t_packet;
 
-typedef struct s_program{
+typedef struct s_ping{
     char *ip;
     char *hostname;
     int     sck;
     int     flags;
-} t_program;
+    short     ttl;
+    long     count;
+} t_ping;
 
 struct s_timings{
     double min;
@@ -43,12 +47,13 @@ struct s_timings{
 };
 
 //parsing
-void set_flags(char* arg, int *flags);
+void parse_args(int argc, char *argv[], t_ping* ctx);
+// void set_flags(char* arg, int *flags);
 char* gethost(char *argv);
 
 //utils
 void update_timings(struct s_timings *times, double pckt_msec);
 void calc_endtimes(struct s_timings *times);
-void print_help();
+void show_usage(int);
 
 #endif

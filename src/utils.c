@@ -17,7 +17,7 @@ void calc_endtimes(struct s_timings *times){
     times->mdev = 0; //TODO
 }
 
-void print_help(){
+void show_usage(int extval){
     printf("Usage: sudo ./ft_ping [-v] [-?] <hostname>\n");
     printf("  -v, --verbose         Show extra error information (e.g., unreachable hosts)\n");
     // printf("  -c, --count COUNT     Stop after sending <count> packets\n");
@@ -27,4 +27,5 @@ void print_help(){
     printf("  -?, --help            Show this help message\n");
     // printf("  -l, --preload PRELOAD Number of packets to preload before normal behavior\n");
     printf("  -h, --help            Show this help message\n");
+    exit(extval);
 }

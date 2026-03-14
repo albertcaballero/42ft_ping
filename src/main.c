@@ -54,7 +54,7 @@ uint16_t calculate_checksum(void *data, int len) {
     return result;
 }
 
-void ping_loop(int sockfd, t_program *ping){
+void ping_loop(int sockfd, t_ping *ping){
     int sent = 0, received = 0, seq = 0, flag = 0;
     struct s_timings tmg;
     //sendto
@@ -144,16 +144,21 @@ void ping_loop(int sockfd, t_program *ping){
 }
 
 int main(int argc, char** argv){
-    t_program ping;
+    t_ping ping;
     int flags = 0;
     int sock_r;
 
     int idx = 0;
-    for (int i = 1; i < argc; ++i){
-		set_flags(argv[i], &flags);
-		idx = argv[i][0] != '-';
-	}
+    parse_args(argc, argv, &ping);
+ //    for (int i = 1; i < argc; ++i){
+	// 	set_flags(argv[i], &flags);
+	// 	idx = argv[i][0] != '-';
+	// }
     ping.flags = flags;
+    if (ping.flags & F_HELP){
+        show_usage(0);
+    }
+return 0;
     ping.ip = gethost(argv[idx]);
     if (!ping.ip){
         return 0;
@@ -165,11 +170,6 @@ int main(int argc, char** argv){
         return 0;
     }
     signal(SIGINT, sigint_handler);
-
-    if (ping.flags & F_HELP){
-        print_help();
-        return 0;
-    }
 
     if (ping.flags & F_VERBOSE){
         //TODO
