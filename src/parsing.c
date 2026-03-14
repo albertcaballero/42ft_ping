@@ -1,5 +1,6 @@
 #include "../ft_ping.h"
 #include <bits/getopt_core.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -92,6 +93,9 @@ void parse_args(int argc, char *argv[], t_ping* ctx)
 {
     int         opt;
 
+    ctx->count = LONG_MAX;
+    ctx->ttl = 64;
+
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
         {"verbose", no_argument, 0, 'v'},
@@ -122,12 +126,9 @@ void parse_args(int argc, char *argv[], t_ping* ctx)
         }
     }
 
-    for (int i = optind; i < argc; i++) {
-        printf("ARG=%s\n", argv[i]);
+    if (optind == argc){
+        ft_dprintf(STDERR_FILENO, "ft_ping: usage error: Destination address required\n");
+        exit(0);
     }
-    // if (ctx->dst == NULL) {
-    //     fprintf(stderr, "ft_ping: Missing host operand.\n");
-    //     show_usage(EXIT_FAILURE);
-    // }
-
+    ctx->hostname = ft_strdup(argv[argc-1]);
 }

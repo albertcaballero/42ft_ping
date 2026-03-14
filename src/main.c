@@ -16,9 +16,9 @@ void sigint_handler(int sig){
     pinging = 0;
 }
 
-int create_socket(){
+int create_socket(int ttl){
     int sock_r;
-    int tt_val = 64;
+    int tt_val = ttl;
     struct timeval timeout = {RECV_TIMEOUT, 0};
 
     sock_r = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
@@ -54,9 +54,21 @@ uint16_t calculate_checksum(void *data, int len) {
     return result;
 }
 
+void fill_packet(t_packet *pck, int seq){
+    ft_bzero(pck, sizeof(*pck));
+    pck->header.type = ICMP_ECHO; //8 echo request
+    pck->header.code = 0;
+    pck->header.un.echo.id = getpid();
+    pck->header.un.echo.sequence = seq;
+    ft_bzero(&pck->msg, PACKET_SIZE);
+    pck->header.checksum = 0;
+    pck->header.checksum = calculate_checksum(&pck, sizeof(*pck));
+}
+
 void ping_loop(int sockfd, t_ping *ping){
     int sent = 0, received = 0, seq = 0, flag = 0;
     struct s_timings tmg;
+    ft_bzero(&tmg, sizeof(tmg));
     //sendto
     t_packet packet;
 
@@ -79,17 +91,9 @@ void ping_loop(int sockfd, t_ping *ping){
     unsigned long total_msec = 0;
     clock_gettime(CLOCK_REALTIME, &start_time);
 
-    while (pinging){
+    while (pinging && sent < ping->count){
         seq++;
-        //TODO put this in function
-        ft_bzero(&packet, sizeof(packet));
-        packet.header.type = ICMP_ECHO; //8 echo request
-        packet.header.code = 0;
-        packet.header.un.echo.id = getpid();
-        packet.header.un.echo.sequence = seq;
-        ft_bzero(&packet.msg, PACKET_SIZE);
-        packet.header.checksum = 0;
-        packet.header.checksum = calculate_checksum(&packet, sizeof(packet));
+        fill_packet(&packet, seq);
 
         flag = 1;
         clock_gettime(CLOCK_REALTIME, &send_time);
@@ -102,7 +106,7 @@ void ping_loop(int sockfd, t_ping *ping){
         int rec_bytes = recvfrom(sockfd, r_buffer, sizeof(r_buffer), 0, (struct sockaddr *)&ping_from, &addrlen);
         if (rec_bytes < 0){
             if (errno == EAGAIN || errno == EWOULDBLOCK)
-                printf("Request timeout for icmp_seq %d\n", seq);
+                ft_printf("Request timeout for icmp_seq %d\n", seq);
             else
                 perror("ERROR RECEIVING");
         }else{
@@ -137,36 +141,35 @@ void ping_loop(int sockfd, t_ping *ping){
     unsigned int loss = 0;
     if (seq)
         loss = (seq - received)/seq * 100;
-    calc_endtimes(&tmg);
+
     ft_printf("\n--- %s ping statistics ---\n", ping->hostname);
     ft_printf("%u packets transmitted, %u received, %u%% packet loss, time %ums\n", sent, received, loss, total_msec);
     printf("rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n", tmg.min, tmg.avg, tmg.max, tmg.mdev);
 }
 
+void cleanup(t_ping *ping){
+    if (ping->hostname)
+        free(ping->hostname);
+    if (ping->ip)
+        free(ping->ip);
+}
+
 int main(int argc, char** argv){
     t_ping ping;
-    int flags = 0;
     int sock_r;
 
-    int idx = 0;
+    ft_bzero(&ping, sizeof(t_ping));
     parse_args(argc, argv, &ping);
- //    for (int i = 1; i < argc; ++i){
-	// 	set_flags(argv[i], &flags);
-	// 	idx = argv[i][0] != '-';
-	// }
-    ping.flags = flags;
-    if (ping.flags & F_HELP){
-        show_usage(0);
-    }
-return 0;
-    ping.ip = gethost(argv[idx]);
+
+    ping.ip = gethost(ping.hostname);
     if (!ping.ip){
+        cleanup(&ping);
         return 0;
     }
-    ping.hostname = ft_strdup(argv[idx]);
 
-    sock_r = create_socket();
+    sock_r = create_socket(ping.ttl);
     if (sock_r < 0){
+        cleanup(&ping);
         return 0;
     }
     signal(SIGINT, sigint_handler);
@@ -180,13 +183,9 @@ return 0;
     ping_loop(sock_r, &ping);
 
     close(sock_r);
-    free(ping.ip);
-    free(ping.hostname);
+    cleanup(&ping);
 }
 
 //TODO list
 // implement -verbose
-// implement other flags
-// fix ping result and summary
-// timings mdev
-// fit to inetutils ping (not yours)
+// implement -c -t

@@ -6,15 +6,13 @@ void update_timings(struct s_timings *times, double pckt_msec){
 
     if (pckt_msec < times->min || times->min < 0.001)
         times->min = pckt_msec;
-
     times->total += pckt_msec;
     times->count++;
-}
-
-void calc_endtimes(struct s_timings *times){
     times->avg = times->total / times->count;
 
-    times->mdev = 0; //TODO
+    times->variance += (pckt_msec - times->avg) * (pckt_msec - times->avg);
+    times->variance /= times->count;
+    times->mdev = sqrt(times->variance);
 }
 
 void show_usage(int extval){

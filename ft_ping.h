@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
+#include <math.h>
 
 #define F_VERBOSE   (1 << 0)
 #define F_HELP      (1 << 1)
@@ -43,6 +44,7 @@ struct s_timings{
     double max;
     double mdev;
     double total;
+    double variance;
     int count;
 };
 
@@ -53,7 +55,7 @@ char* gethost(char *argv);
 
 //utils
 void update_timings(struct s_timings *times, double pckt_msec);
-void calc_endtimes(struct s_timings *times);
+// void calc_endtimes(struct s_timings *times);
 void show_usage(int);
 
 #endif
