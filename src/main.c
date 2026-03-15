@@ -16,10 +16,10 @@ void sigint_handler(int sig){
     pinging = 0;
 }
 
-int create_socket(int ttl){
+int create_socket(int ttl, int linger){
     int sock_r;
     int tt_val = ttl;
-    struct timeval timeout = {RECV_TIMEOUT, 0};
+    struct timeval timeout = {(time_t)linger, 0};
 
     sock_r = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
     if (sock_r < 0){
@@ -113,25 +113,34 @@ void ping_loop(int sockfd, t_ping *ping){
             if (!flag)
                 continue;
 
-            char cha[INET_ADDRSTRLEN];
-            inet_ntop(AF_INET, &(ping_from.sin_addr), cha, INET_ADDRSTRLEN);
+            char dest_addr[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &(ping_from.sin_addr), dest_addr, INET_ADDRSTRLEN);
 
             struct iphdr *ip_hdr = (struct iphdr *)r_buffer;
-            // struct icmphdr *icmp_reply = (struct icmphdr *)(r_buffer + ip_hdr->ihl * 4);
+            struct icmphdr *icmp_reply = (struct icmphdr *)(r_buffer + ip_hdr->ihl * 4);
+            ft_printf("TYPE = %i and code = %i from %s\n", icmp_reply->type, icmp_reply->code, dest_addr);
 
-            clock_gettime(CLOCK_REALTIME, &rec_time);
-            double timeElapsed = ((double)(rec_time.tv_nsec - send_time.tv_nsec)) / 1000000.0;
-            pckt_msec = (rec_time.tv_sec - send_time.tv_sec) * 1000.0 + timeElapsed;
+            if (icmp_reply->type == ICMP_DEST_UNREACH){
+                printf("From %s icmp_seq=%i Destination Host Unreachable\n", dest_addr, seq);
+            }else if (icmp_reply->type == ICMP_TIME_EXCEEDED){
+                printf("From %s icmp_seq=%i Time to live exceeded\n", dest_addr, seq);
+            } else {
+                clock_gettime(CLOCK_REALTIME, &rec_time);
+                double timeElapsed = ((double)(rec_time.tv_nsec - send_time.tv_nsec)) / 1000000.0;
+                pckt_msec = (rec_time.tv_sec - send_time.tv_sec) * 1000.0 + timeElapsed;
 
-            printf("%d bytes from %s (%s): icmp_seq=%i ttl=%i time=%.2f ms\n",
-                ntohs(ip_hdr->tot_len) - (ip_hdr->ihl * 4),
-                ping->hostname, cha, seq, ip_hdr->ttl, pckt_msec);
+                printf("%d bytes from %s (%s): icmp_seq=%i ttl=%i time=%.3f ms\n",
+                    ntohs(ip_hdr->tot_len) - (ip_hdr->ihl * 4),
+                    ping->hostname, dest_addr, seq, ip_hdr->ttl, pckt_msec);
 
-            received++;
-            total_msec+=pckt_msec;
-            update_timings(&tmg, pckt_msec);
+                received++;
+                total_msec+=pckt_msec;
+                update_timings(&tmg, pckt_msec);
+            }
         }
-        sleep(1);
+        if (sent >= ping->preload){
+            sleep(ping->itvl);
+        }
     }
 
     clock_gettime(CLOCK_REALTIME, &rec_time);
@@ -167,7 +176,7 @@ int main(int argc, char** argv){
         return 0;
     }
 
-    sock_r = create_socket(ping.ttl);
+    sock_r = create_socket(ping.ttl, ping.linger);
     if (sock_r < 0){
         cleanup(&ping);
         return 0;
@@ -188,4 +197,13 @@ int main(int argc, char** argv){
 
 //TODO list
 // implement -verbose
-// implement -c -t
+// implement -n -> numeric only
+// implement -p -> pad
+// implement -w -> timeout
+// implement -f -> flood
+
+// implement -i OK
+// implement -l OK
+// implement --ttl OK
+// implement --W OK
+// implement -c OK

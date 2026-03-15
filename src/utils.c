@@ -18,12 +18,15 @@ void update_timings(struct s_timings *times, double pckt_msec){
 void show_usage(int extval){
     printf("Usage: sudo ./ft_ping [-v] [-?] <hostname>\n");
     printf("  -v, --verbose         Show extra error information (e.g., unreachable hosts)\n");
-    // printf("  -c, --count COUNT     Stop after sending <count> packets\n");
+    printf("  -c, --count COUNT     Stop after sending <count> packets\n");
     // printf("  -i, --interval SECS   Interval between packets\n");
     // printf("  -s, --size SIZE       Payload size in bytes\n");
     // printf("  -q, --quiet           Suppress output except for errors\n");
     printf("  -?, --help            Show this help message\n");
-    // printf("  -l, --preload PRELOAD Number of packets to preload before normal behavior\n");
     printf("  -h, --help            Show this help message\n");
+    printf("  -l, --preload         PRELOAD Number of packets to preload before normal behavior\n");
+    printf("  -W, --linger          Maximum number of seconds n to wait for a response.\n");
+    printf("  -i, --interval        Wait n seconds until sending next packet.\n");
+    // printf("  -f, --flood           Flood ping. Outputs packets as fast as they come back or one hundred times per second, whichever is more. \n");
     exit(extval);
 }

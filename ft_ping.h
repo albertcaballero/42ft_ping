@@ -18,10 +18,9 @@
 
 #define F_VERBOSE   (1 << 0)
 #define F_HELP      (1 << 1)
-//-v -> verbose output
-//-? / --help -> display help
-//
-#define RECV_TIMEOUT 1 //in seconds
+#define F_FLOOD      (1 << 2)
+
+#define RECV_TIMEOUT 1
 #define PACKET_SIZE 56
 
 typedef struct s_packet{
@@ -36,6 +35,9 @@ typedef struct s_ping{
     int     flags;
     short     ttl;
     long     count;
+    int     linger;
+    int     preload;
+    int     itvl;
 } t_ping;
 
 struct s_timings{

@@ -19,7 +19,7 @@ $(TMP)%.o: src/%.c $(LIBFT) Makefile $(TMP) $(LIBRARY)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 $(NAME): $(OBJS) $(LIBFT)
-	$(CC) $(CFLAGS) -L libft -lft -o $@ $^
+	$(CC) $(CFLAGS) -L libft -lft -o $@ $^ -lm
 
 $(TMP):
 	mkdir -p $(TMP)
