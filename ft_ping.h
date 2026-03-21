@@ -53,7 +53,7 @@ struct s_timings{
 //parsing
 void parse_args(int argc, char *argv[], t_ping* ctx);
 // void set_flags(char* arg, int *flags);
-char* gethost(char *argv);
+char* gethost(char *argv, int verbose);
 
 //utils
 void update_timings(struct s_timings *times, double pckt_msec);

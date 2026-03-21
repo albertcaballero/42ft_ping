@@ -62,7 +62,7 @@ void fill_packet(t_packet *pck, int seq){
     pck->header.un.echo.sequence = seq;
     ft_bzero(&pck->msg, PACKET_SIZE);
     pck->header.checksum = 0;
-    pck->header.checksum = calculate_checksum(&pck, sizeof(*pck));
+    pck->header.checksum = calculate_checksum(pck, sizeof(*pck));
 }
 
 void ping_loop(int sockfd, t_ping *ping){
@@ -110,7 +110,7 @@ void ping_loop(int sockfd, t_ping *ping){
             else
                 perror("ERROR RECEIVING");
         }else{
-            if (!flag)
+            if (!flag && !(ping->flags & F_VERBOSE))
                 continue;
 
             char dest_addr[INET_ADDRSTRLEN];
@@ -118,13 +118,13 @@ void ping_loop(int sockfd, t_ping *ping){
 
             struct iphdr *ip_hdr = (struct iphdr *)r_buffer;
             struct icmphdr *icmp_reply = (struct icmphdr *)(r_buffer + ip_hdr->ihl * 4);
-            ft_printf("TYPE = %i and code = %i from %s\n", icmp_reply->type, icmp_reply->code, dest_addr);
+            // ft_printf("TYPE = %i and code = %i from %s\n", icmp_reply->type, icmp_reply->code, dest_addr);
 
             if (icmp_reply->type == ICMP_DEST_UNREACH){
                 printf("From %s icmp_seq=%i Destination Host Unreachable\n", dest_addr, seq);
             }else if (icmp_reply->type == ICMP_TIME_EXCEEDED){
                 printf("From %s icmp_seq=%i Time to live exceeded\n", dest_addr, seq);
-            } else {
+            } else if (icmp_reply->type == ICMP_ECHOREPLY){
                 clock_gettime(CLOCK_REALTIME, &rec_time);
                 double timeElapsed = ((double)(rec_time.tv_nsec - send_time.tv_nsec)) / 1000000.0;
                 pckt_msec = (rec_time.tv_sec - send_time.tv_sec) * 1000.0 + timeElapsed;
@@ -136,6 +136,10 @@ void ping_loop(int sockfd, t_ping *ping){
                 received++;
                 total_msec+=pckt_msec;
                 update_timings(&tmg, pckt_msec);
+            } else if (ping->flags & F_VERBOSE){
+                printf("%d bytes from %s: icmp_seq=%i ttl=%i type=%i code=%i\n",
+                    ntohs(ip_hdr->tot_len) - (ip_hdr->ihl * 4),
+                    dest_addr, icmp_reply->un.echo.sequence, ip_hdr->ttl, icmp_reply->type, icmp_reply->code);
             }
         }
         if (sent >= ping->preload){
@@ -149,7 +153,7 @@ void ping_loop(int sockfd, t_ping *ping){
 
     unsigned int loss = 0;
     if (seq)
-        loss = (seq - received)/seq * 100;
+        loss = (unsigned int)((float)(seq - received) / seq * 100);
 
     ft_printf("\n--- %s ping statistics ---\n", ping->hostname);
     ft_printf("%u packets transmitted, %u received, %u%% packet loss, time %ums\n", sent, received, loss, total_msec);
@@ -170,7 +174,7 @@ int main(int argc, char** argv){
     ft_bzero(&ping, sizeof(t_ping));
     parse_args(argc, argv, &ping);
 
-    ping.ip = gethost(ping.hostname);
+    ping.ip = gethost(ping.hostname, ping.flags & F_VERBOSE);
     if (!ping.ip){
         cleanup(&ping);
         return 0;
@@ -182,11 +186,6 @@ int main(int argc, char** argv){
         return 0;
     }
     signal(SIGINT, sigint_handler);
-
-    if (ping.flags & F_VERBOSE){
-        //TODO
-        ft_printf("FT_PING %s (%s) %i(84) bytes of data.\n", ping.hostname, ping.ip, PACKET_SIZE);
-    }
 
     ft_printf("FT_PING %s (%s) %i(84) bytes of data.\n", ping.hostname, ping.ip, PACKET_SIZE);
     ping_loop(sock_r, &ping);

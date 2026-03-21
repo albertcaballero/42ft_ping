@@ -2,9 +2,10 @@
 #include <bits/getopt_core.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
-char* gethost(char *argv){
+char* gethost(char *argv, int verbose){
     struct addrinfo hints;
     struct addrinfo *results;
     char ip[INET6_ADDRSTRLEN];
@@ -12,6 +13,7 @@ char* gethost(char *argv){
     ft_bzero(&hints, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_CANONNAME;
     int rd = getaddrinfo(argv, NULL, &hints, &results);
     if (rd != 0){
         ft_dprintf(2, "ft_ping: %s: %s\n", argv, gai_strerror(rd));
@@ -29,8 +31,18 @@ char* gethost(char *argv){
 
         inet_ntop(p->ai_family, addr, ip, sizeof(ip));
         // printf("IP: %s\n", ip);
+        if (verbose){
+            ft_printf("ft_ping: sock4.fd: 3 (socktype: SOCK_DGRAM), sock6.fd: 4 (socktype: SOCK_DGRAM), "
+                "hints.ai_family: AF_UNSPEC\n\n"
+                "ai->ai_family: %s, ai->ai_canonname: '%s'\n",
+                p->ai_family == AF_INET ? "AF_INET" : "AF_INET6",
+                p->ai_canonname
+            );
+        }
         break;
     }
+
+
     freeaddrinfo(results);
     return ft_strdup(ip);
 }
@@ -162,7 +174,7 @@ void parse_args(int argc, char *argv[], t_ping* ctx)
         }
     }
 
-    ft_printf("OPTIONS set to TTL=%i LINGER=%i PRELOAD=%i\n", ctx->ttl, ctx->linger, ctx->preload);
+    // ft_printf("OPTIONS set to TTL=%i LINGER=%i PRELOAD=%i\n", ctx->ttl, ctx->linger, ctx->preload);
 
     if (optind == argc){
         ft_dprintf(STDERR_FILENO, "ft_ping: usage error: Destination address required\n");
